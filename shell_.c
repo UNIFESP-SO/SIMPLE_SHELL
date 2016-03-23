@@ -1,8 +1,8 @@
-#include <sys/wait.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
+#include<sys/wait.h>
+#include<stdlib.h>
+#include<stdio.h>
+#include<string.h>
+#include<unistd.h>
 #define TRUE 1
 #define MAX_COM 1024
 #define MAX_PAR 100
@@ -42,11 +42,18 @@ char **aloca(int L, int C){
 	return parameters;
 }
 
-int main(){
-	int status;
+int main(void){
+	int status, flag = 0;
+	int STDOUT_copy = dup(STDOUT_FILENO);
+	int STDIN_copy = dup(STDIN_FILENO);
 	char *command;
 	char **parameters;
 	char *str;
+	int fd[2];
+	if (pipe(fd) < 0) {
+		perror("pipe()");
+		return -1;
+	}
 	
 	while(1)
 	{
@@ -62,13 +69,28 @@ int main(){
 
 		while(str){	//while tem comando a executar
                 	read_command(str, command, parameters); 
-			printf("str = %scommand = %s\nparameters = %s\n", str, command, parameters[0]);
-			// redirecionando saida padrao
-			if( (str = index(str, '|')) ){
-				str++;	
-			}	
+			printf("str = %scommand = %s\nparameters = %s\n", str, command, parameters[1]);
+			flag = 0;
+			if( (str = index(str, '|')) ){ // se houver pipe, redireciona stdout
+				flag = 1;
+				str++;
+				close(STDOUT_FILENO);
+				dup(fd[1]);
+
+				close(STDIN_FILENO);
+				dup(fd[0]);
+			
+			}
+			if(flag == 0 ){
+				close(fd[1]);
+				dup2(STDOUT_copy, 1);
+			} 
 			if(fork() != 0){
 				waitpid(-1, &status, 0);
+				if(flag == 0){
+					close(fd[0]);
+					dup2(STDIN_copy, 0);
+				}
 			}else {
 				execvp(command, parameters);
 				return 0;
