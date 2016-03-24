@@ -43,9 +43,9 @@ char **aloca(int L, int C){
 }
 
 int main(void){
-	int status, flag = 0;
-	int STDOUT_copy;	// = dup(STDOUT_FILENO);
-	int STDIN_copy;		// = dup(STDIN_FILENO);
+	int status, flag = -1;
+	int STDOUT_copy = dup(STDOUT_FILENO);
+	int STDIN_copy = dup(STDIN_FILENO);
 	char *command;
 	char **parameters;
 	char *str;
@@ -69,18 +69,15 @@ int main(void){
 
 		while(str){	//while tem comando a executar
                 	read_command(str, command, parameters); 
-			printf("str = %scommand = %s\nparameters = %s\n", str, command, parameters[1]);
 			flag = 0;
+		
 			if( (str = index(str, '|')) ){ // se houver pipe, redireciona stdout
 				flag = 1;
 				str++;
-				STDOUT_copy = dup(STDOUT_FILENO);
-				close(STDOUT_FILENO);
-				dup(fd[1]);
-				STDIN_copy = dup(STDIN_FILENO);
-				close(STDIN_FILENO);
-				dup(fd[0]);
-			
+				close(1);
+				dup2(fd[1], 1);
+				close(0);
+				dup2(fd[0], 0);
 			}
 			if(flag == 0 ){
 				close(fd[1]);
@@ -89,14 +86,14 @@ int main(void){
 			} 
 			if(fork() != 0){
 				waitpid(-1, &status, 0);
-				if(flag == 0){
-					STDIN_FILENO = dup(STDIN_copy);
-					close(fd[0]);
-					dup2(STDIN_FILENO, 0);
-				}
 			}else {
 				execvp(command, parameters);
 				return 0;
+			}
+			
+			if(flag == 0){
+				close(fd[0]);
+				dup2(STDIN_copy, 0);
 			}
 		}
 		free(command);
