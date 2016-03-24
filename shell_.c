@@ -1,4 +1,4 @@
-#include<sys/wait.h>
+mu#include<sys/wait.h>
 #include<stdlib.h>
 #include<stdio.h>
 #include<string.h>
@@ -44,8 +44,8 @@ char **aloca(int L, int C){
 
 int main(void){
 	int status, flag = 0;
-	int STDOUT_copy = dup(STDOUT_FILENO);
-	int STDIN_copy = dup(STDIN_FILENO);
+	int STDOUT_copy;	// = dup(STDOUT_FILENO);
+	int STDIN_copy;		// = dup(STDIN_FILENO);
 	char *command;
 	char **parameters;
 	char *str;
@@ -74,22 +74,25 @@ int main(void){
 			if( (str = index(str, '|')) ){ // se houver pipe, redireciona stdout
 				flag = 1;
 				str++;
+				STDOUT_copy = dup(STDOUT_FILENO);
 				close(STDOUT_FILENO);
 				dup(fd[1]);
-
+				STDIN_copy = dup(STDIN_FILENO);
 				close(STDIN_FILENO);
 				dup(fd[0]);
 			
 			}
 			if(flag == 0 ){
 				close(fd[1]);
-				dup2(STDOUT_copy, 1);
+				STDOUT_FILENO = dup(STDOUT_copy);
+				dup2(STDOUT_FILENO, 1);
 			} 
 			if(fork() != 0){
 				waitpid(-1, &status, 0);
 				if(flag == 0){
+					STDIN_FILENO = dup(STDIN_copy);
 					close(fd[0]);
-					dup2(STDIN_copy, 0);
+					dup2(STDIN_FILENO, 0);
 				}
 			}else {
 				execvp(command, parameters);
