@@ -43,7 +43,7 @@ char **aloca(int L, int C){
 }
 
 int main(void){
-	int status, flag = 0;
+	int status, flag = -1;
 	int STDOUT_copy = dup(STDOUT_FILENO);
 	int STDIN_copy = dup(STDIN_FILENO);
 	char *command;
@@ -69,16 +69,15 @@ int main(void){
 
 		while(str){	//while tem comando a executar
                 	read_command(str, command, parameters); 
-			printf("str = %scommand = %s\nparameters = %s\n", str, command, parameters[1]);
 			flag = 0;
+		
 			if( (str = index(str, '|')) ){ // se houver pipe, redireciona stdout
 				flag = 1;
 				str++;
-				close(STDOUT_FILENO);
-				dup(fd[1]);
-
-				close(STDIN_FILENO);
-				dup(fd[0]);
+				close(1);
+				dup2(fd[1], 1);
+				close(0);
+				dup2(fd[0], 0);
 			
 			}
 			if(flag == 0 ){
@@ -87,13 +86,15 @@ int main(void){
 			} 
 			if(fork() != 0){
 				waitpid(-1, &status, 0);
-				if(flag == 0){
-					close(fd[0]);
-					dup2(STDIN_copy, 0);
-				}
+		
 			}else {
 				execvp(command, parameters);
 				return 0;
+			}
+			
+			if(flag == 0){
+				close(fd[0]);
+				dup2(STDIN_copy, 0);
 			}
 		}
 		free(command);
