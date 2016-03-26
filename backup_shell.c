@@ -47,13 +47,12 @@ char **aloca(int L, int C){
 
 int main(void){
 	int status;
-	char *command;
-	char **parameters;
-	//int copyout = dup(STDOUT_FILENO);
-	//int copyin = dup(STDIN_FILENO);
+	char *command1;
+	char *command2;
+	char **parameters1;
+	char **parameters2;
 	char *str;
 	int fd[2];
-	char *coma[] = {"grep", "sh", NULL};
 
 	if (pipe(fd) < 0) {
 		perror("pipe()");
@@ -62,53 +61,47 @@ int main(void){
 	
 	while(1)
 	{
-		command = (char *)calloc(MAX_PAR, sizeof (char));
+		command1 = (char *)calloc(MAX_PAR, sizeof (char));
+		command2 = (char *)calloc(MAX_PAR, sizeof (char));
 		str	= (char *)calloc(MAX_COM, sizeof (char));
-		parameters = aloca(MAX_PAR, MAX_PAR);
+		parameters1 = aloca(MAX_PAR, MAX_PAR);
+		parameters2 = aloca(MAX_PAR, MAX_PAR);
 
 		printf("FERNANDO@SHELL$ ");
 
 		read_commandline(str);	// lendo linha de comando inteira
 		if(!strcasecmp("exit\n", str)) break; 
 		if(!strcasecmp("\n", str)) continue;
-		
-		int flag = 0, flag2 = -1;
 
 		while(str){	//while tem comando a executar
-                	read_command(str, command, parameters);
-			flag = 0; 
+                	read_command(str, command1, parameters1); 
 			if( (str = index(str, '|')) ){
 				str++;
-				flag = 1;
-				flag2 = 0;
+			}
+			else
+				continue;
+			if(fork() == 0) {
+				if(fork() == 0){
+					waitpid(0, &status, 0);
+					read_command(str, command2, parameters2);
+					dup2(fd[0], 0);
+					execvp(command2, parameters2);
+					return 0;
+				}else {
+					dup2(fd[1], 1);
+					execvp(command1, parameters1);
+					return 0;
+				}
 			}
 			else{
-				if(flag2 == 0) flag2 = 1;
-	//			continue;
-			}
-			if(fork() == 0) {
-				if(flag == 1){
-					dup2(fd[1], 1);
-					dup2(fd[0], 0);
-				}
-				if(flag2 == 1){
-			//		dup2(copyout, 1);
-					dup2(fd[0], 0);
-					execvp(coma[0], coma);
-				}
-				printf("executando\n");
-				execvp(command, parameters);
-				printf("depois de exec\n");
-			//	return 0;
-			}else {
-				printf("esperadno\n");
-				waitpid(0,&status,0);
-				printf("saindo do pai\n");
+				waitpid(0,&status, 0);
 			}
 		}
-		free(command);
+		free(command1);
+		free(command2);
 		free(str);
-		free(parameters);
+		free(parameters1);
+		free(parameters2);
 	}
 	return 0;
 }
