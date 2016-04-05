@@ -45,6 +45,7 @@ int read_command(char *str, char *command, char **parameters){
                 i++; jp++;
             }
             parameters[ip][jp] = '\0';
+            printf("%s\n", parameters[ip]);
             jp = 0; ip++;
         }
     }
@@ -65,12 +66,12 @@ char **aloca(int L, int C){
 }
 
 void cria_pipe(){
-    int fd[2];
-    pipe(&fd[0]);
+    int pipe(int fd[2]);
 
-    int flag = 0;
+    int fd[2];
     int fd1[2];
-    pipe(&fd1[0]);
+    pipe(fd);
+    pipe(fd1);
 
     printf("Contador: %i\n", cont);
 
@@ -78,23 +79,23 @@ void cria_pipe(){
         waitpid(-1,status,0);
         if(cont>0){
             close(fd1[1]);
-            dup(fd1[0]);
+            dup2(fd1[0], 0);
             read(fd1[0], &i, sizeof(i));
             close(fd1[0]);
             printf("Valor de i pai: %i\n",i);
             printf("%c\n",str[i]);
+            //se encontrar algum espaço ou | passa para a próxima posição de str
             if(str[i] != '\n' && (str[i] == '|' || str[i] == ' '))
                 while(str[i] != '\n' && (str[i] == '|' || str[i] == ' '))
                     i++;
             read_command(str, command, parameters);
-            printf("%s\t%s*", command, parameters);
         }
         //processo pai executa esses comandos
         waitpid(-1,status,0);
+        close(fd[1]); //o processo 1 precisa ler o pipe
+        dup2(fd[0], 0); //configura a saída padrão para fd[0]
         execvp(command, parameters);
-        close(fd[0]); //o processo 1 não precisa ler o pipe
-        dup(fd[1]); //configura a saída padrão para fd[1]
-        close(fd[1]); //este descritor de arquivo não é mais necessário
+        close(fd[0]); //este descritor de arquivo não é mais necessário
         }
     else{
         //o processo filho executa estes comandos
@@ -102,18 +103,17 @@ void cria_pipe(){
 
         if(cont>0){
             close(fd1[0]);
-            dup(fd1[1]);
+            dup2(fd1[1],1);
             write(fd1[1], &i, sizeof(i));
             close(fd1[1]);
         }
-
-        close(fd[1]); //o processo 2 não precisa escrever o pipe
-        dup(fd[0]); //configura a saída padrão para fd[0]
-        close(fd[0]); //este descritor de arquivo não é mais necessário
-
+        //pipe de entrada
+        close(fd[0]);
+        dup2(fd[1],1);
         printf("Valor de i filho: %i\n",i);
         execvp(command, parameters);
-}
+        close(fd[1]);
+    }
 }
 
 int main(int argc, char *argv[]) {
