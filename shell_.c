@@ -12,6 +12,18 @@ int read_commandline(char *str){
 	return 0;
 }
 
+
+int conta_pipe(char *str)
+{
+    int cont = 0;
+    int a = 0;
+    while(str[a] != '\n'){
+        if(str[a] == '|')cont++;
+        a++;
+    }
+    return cont;
+}
+
 int read_command(char *str, char *command, char **parameters){
 	int ip = 0, i=0 , jp= 0, sair = 0;
 	while(str[i] != '\n' && str[i] != '|'){
@@ -46,66 +58,58 @@ char **aloca(int L, int C){
 }
 
 int main(void){
-	int status;
+	int cont_pipe, i, status;
 	char *command;
 	char **parameters;
-	//int copyout = dup(STDOUT_FILENO);
-	//int copyin = dup(STDIN_FILENO);
 	char *str;
 	int fd[2];
-	char *coma[] = {"grep", "sh", NULL};
-
-	if (pipe(fd) < 0) {
+	int past;
+//	char *coma[] = {"grep", "sh", NULL};
+//	char *coma1[] = {"ls", "-la", NULL};
+	
+/*	if (pipe(fd) < 0) {
 		perror("pipe()");
 		return -1;
 	}
-	
+*/	
 	while(1)
 	{
-		command = (char *)calloc(MAX_PAR, sizeof (char));
 		str	= (char *)calloc(MAX_COM, sizeof (char));
+		command = (char *)calloc(MAX_PAR, sizeof (char));
 		parameters = aloca(MAX_PAR, MAX_PAR);
 
 		printf("FERNANDO@SHELL$ ");
-
 		read_commandline(str);	// lendo linha de comando inteira
 		if(!strcasecmp("exit\n", str)) break; 
 		if(!strcasecmp("\n", str)) continue;
 		
-		int flag = 0, flag2 = -1;
+		cont_pipe = conta_pipe(str);
+		read_command(str, command, parameters);
 
-		while(str){	//while tem comando a executar
-                	read_command(str, command, parameters);
-			flag = 0; 
-			if( (str = index(str, '|')) ){
-				str++;
-				flag = 1;
-				flag2 = 0;
-			}
-			else{
-				if(flag2 == 0) flag2 = 1;
-	//			continue;
-			}
-			if(fork() == 0) {
-				if(flag == 1){
-					dup2(fd[1], 1);
-					dup2(fd[0], 0);
+		for(i = 0; i< cont_pipe; i++){
+			str = index(str, '|');
+			str++;
+			pipe(fd);//cria o tunel que é herdado pelo filho
+			if(!fork()){//para o novo processo
+				if(i!=0){//se não for o primeiro comando
+					dup2(past, 0);//recebe como entrada a saida do tunel passado
 				}
-				if(flag2 == 1){
-			//		dup2(copyout, 1);
-					dup2(fd[0], 0);
-					execvp(coma[0], coma);
-				}
-				printf("executando\n");
-				execvp(command, parameters);
-				printf("depois de exec\n");
-			//	return 0;
-			}else {
-				printf("esperadno\n");
-				waitpid(0,&status,0);
-				printf("saindo do pai\n");
+				dup2(fd[1], 1);//a saida vai para o novo tunel
+    				execvpe(command,parameters);//especializa o novo processo
 			}
+			close(fd[1]);//fecha o tunel para o pai
+			if(i!=0) close(past);//fecha o tunel passado para o pai
+			past = fd[0];//o tunel atual agora é o passado
 		}
+		if(!fork()){//executado para o ultimo processo
+			if(i!=0){//se ele tb não for o primeiro
+				dup2(past, 0);//coloca a entrada para a saida do tunel
+			}
+			execvpe(command,parameters);//especializa este processo
+		}else{
+			wait(&status);
+		}
+
 		free(command);
 		free(str);
 		free(parameters);

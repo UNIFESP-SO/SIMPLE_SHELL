@@ -36,7 +36,7 @@ int conta_pipe(char *str){
 }
 
 int read_command(char *str, char *command, char **parameters){
-	int ip = 0, jp = 0;
+    int ip = 0, jp = 0;
     while(str[i] != '\n' && str[i] != '|'){
         while( str[i] == ' ' ) i++;
         if(str[i] != '|'){
@@ -45,23 +45,22 @@ int read_command(char *str, char *command, char **parameters){
                 i++; jp++;
             }
             parameters[ip][jp] = '\0';
-            printf("%s\n", parameters[ip]);
             jp = 0; ip++;
         }
     }
-	parameters[ip] = NULL;
-	strcpy(command , parameters[0]);
+    parameters[ip] = NULL;
+    strcpy(command , parameters[0]);
 
-	return ip;
+    return ip;
 }
 
 char **aloca(int L, int C){
 	char **parameters = NULL;
 	int i;
-    parameters = (char **)calloc(L, sizeof (char *));
-    for(i = 0; i < L; i++){
-        parameters[i] = (char *)calloc(C, sizeof(char));
-    }
+   	parameters = (char **)calloc(L, sizeof (char *));
+    	for(i = 0; i < L; i++){
+        	parameters[i] = (char *)calloc(C, sizeof(char));
+    	}
 	return parameters;
 }
 
@@ -118,15 +117,15 @@ void cria_pipe(){
 
 int main(int argc, char *argv[]) {
 
-    while(TRUE){
-        printf("FERNANDO&BRUNO@SHELL$ ");
+    	while(TRUE){
+        	printf("FERNANDO&BRUNO@SHELL$ ");
 		str	= (char *)calloc(MAX_COM, sizeof (char));
-        command = (char *)calloc(MAX_PAR, sizeof (char));
+	        command = (char *)calloc(MAX_PAR, sizeof (char));
 		parameters = aloca(MAX_PAR, MAX_PAR);
 
-        read_commandline(str);
+	        read_commandline(str);
 
-        cont = conta_pipe(str);
-        cria_pipe();
+        	cont = conta_pipe(str);
+	        cria_pipe();
 	}
 }
