@@ -116,7 +116,7 @@ void cria_pipe(){
 }
 
 int main(int argc, char *argv[]) {
-
+	int status;
     	while(TRUE){
         	printf("FERNANDO&BRUNO@SHELL$ ");
 		str	= (char *)calloc(MAX_COM, sizeof (char));
@@ -124,8 +124,15 @@ int main(int argc, char *argv[]) {
 		parameters = aloca(MAX_PAR, MAX_PAR);
 
 	        read_commandline(str);
+		if(!strcasecmp("exit\n", str)) break;
+                if(!strcasecmp("\n", str)) continue;
 
-        	cont = conta_pipe(str);
-	        cria_pipe();
+		if(fork()==0){
+	        	cont = conta_pipe(str);
+		        cria_pipe();
+		}
+		else
+			wait(&status);
 	}
+	return 0;
 }
