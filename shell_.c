@@ -86,7 +86,7 @@ int main(void){
 		cont_pipe = conta_pipe(str);
 		read_command(str, command, parameters);
 
-		for(i = 0; i< cont_pipe; i++){
+		for(i = 0; i<= cont_pipe-1; i++){
 			str = index(str, '|');
 			str++;
 			pipe(fd);//cria o tunel que é herdado pelo filho
@@ -98,7 +98,8 @@ int main(void){
     				execvpe(command,parameters);//especializa o novo processo
 			}
 			close(fd[1]);//fecha o tunel para o pai
-			if(i!=0) close(past);//fecha o tunel passado para o pai
+			if(i!=0) 
+				close(past);//fecha o tunel passado para o pai
 			past = fd[0];//o tunel atual agora é o passado
 		}
 		if(!fork()){//executado para o ultimo processo
