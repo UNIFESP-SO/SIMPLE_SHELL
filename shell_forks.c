@@ -129,7 +129,13 @@ int main(int argc, char *argv[]) {
 
 		if(fork()==0){
 	        	cont = conta_pipe(str);
-		        cria_pipe();
+			if(cont > 0){
+		        cria_pipe();				
+			}
+			else{
+				read_command(str, command, parameters);
+				execvp(command, parameters);
+			}
 		}
 		else
 			wait(&status);
