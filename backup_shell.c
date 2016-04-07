@@ -3,6 +3,9 @@
 #include<stdio.h>
 #include<string.h>
 #include<unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #define TRUE 1
 #define MAX_COM 1024
 #define MAX_PAR 1000
@@ -48,6 +51,7 @@ char **aloca(int L, int C){
 int conta_pipe(char *str){
     int cont = 0;
     int j = 0;
+
     while(str[j] != '\n'){
         if(str[j] == '|') 
 		cont++;
@@ -60,6 +64,7 @@ int exec_comando(char *str, char *command, char **parameters){
 	int cpipes,status, i=0;
 	int fd[2];
 	int past;
+	int open;
 	
 	cpipes = conta_pipe(str);
 	for(i = 0; i < cpipes; i++){
@@ -99,19 +104,33 @@ int main(void){
 	char *command;
 	char **parameters;
 	char *str;
+	int open
 	
 	while(1)
 	{
 		command = (char *)calloc(MAX_PAR, sizeof (char));
 		str	= (char *)calloc(MAX_COM, sizeof (char));
 		parameters = aloca(MAX_PAR, MAX_PAR);
-
+		open = 0;
+		
 		printf("FERNANDO&BRUNO@SHELL$ ");
 
 		read_commandline(str);	// lendo linha de comando inteira
 		if(!strcasecmp("exit\n", str)) break; 
 		if(!strcasecmp("\n", str)) continue;
 		
+		/*
+		//se encontrar algum > cria o arquivo no caminho especificado
+		open = index(str, '>');
+		if(open > 0){
+			open++;
+			while(str[open] != '\n'){
+				//vetor recebe o caminho do arquivo especificado pelo usuário
+			}
+			open( ,O_RDWR);
+		}
+		*/
+
 		if(fork() == 0) {
 			exec_comando(str, command, parameters);
 			return 0;
