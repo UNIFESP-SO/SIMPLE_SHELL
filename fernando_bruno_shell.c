@@ -1,11 +1,13 @@
 // by:
 // 	Fernando Soares	RA: 86281
 //	Bruno Ferreira	RA: 104790
-
+#include<sys/stat.h>
+#include<fcntl.h>
 #include<sys/wait.h>
 #include<stdlib.h>
 #include<stdio.h>
 #include<string.h>
+#include<strings.h>
 #include<unistd.h>
 #define TRUE 1
 #define MAX_COM 1024
@@ -16,16 +18,34 @@ int read_commandline(char *str){
 	return 0;
 }
 
+char *getfilename(char *str){
+	char *filename;
+	int k = 0, l = 0;
+	filename = (char *)calloc(MAX_PAR, sizeof (char));
+
+	str = index(str, '>');
+	str++;
+	while(str[k] != '\n' || str[k] != '\0'){
+		while( str[k] == ' ' )
+			k++;
+		filename[l] = str[k];
+		l++; k++;
+		if(str[k] == ' ') break;
+	}
+	filename[l]='\n';
+	return filename;
+}
+
 int read_command(char *str, char *command, char **parameters){
 	int ip = 0, i=0 , jp= 0, sair = 0;
-	while(str[i] != '\n' && str[i] != '|'){
+	while(str[i] != '\n' && str[i] != '|' && str[i] != '>'){
 		while( str[i] == ' ' ){
 			 i++;
-			if(str[i] == '\n' || str[i] == '|') sair = 1;
+			if(str[i] == '\n' || str[i] == '>') sair = 1;
 		}
 		if ( sair ) break;
 		if(str[i] != '|'){
-			while( str[i] != ' ' && str[i] != '\n' && str[i] != '|' ){
+			while( str[i] != ' ' && str[i] != '\n' && str[i] != '|' && str[i] != '>'){
 				parameters[ip][jp] = str[i];
 				i++; jp++;
 			}
@@ -35,7 +55,7 @@ int read_command(char *str, char *command, char **parameters){
 	}
 	parameters[ip] = (char *)NULL;
 	strcpy(command , parameters[0]);
-
+	printf("command =%s\nparameters[0] = %s\nparameters[1] = %s\n", command, parameters[0], parameters[1]);
 	return ip;
 }
 
@@ -61,10 +81,19 @@ int conta_pipe(char *str){
 }
 
 int exec_comando(char *str, char *command, char **parameters){
-	int cpipes,status, i=0;
+	int cpipes,status, i=0, flagfile = 0, file;
 	int fd[2];
 	int past;
+	char *filename;
+	filename = (char *)calloc(MAX_PAR, sizeof (char));
+
+	if(index(str, '>')){
+		filename = getfilename(str);
+		printf("filename = %s", filename);
+		file =	open(filename, O_CREAT | O_WRONLY | O_APPEND);
+		flagfile = 1;
 	
+	}
 	cpipes = conta_pipe(str);
 	for(i = 0; i < cpipes; i++){
 		if (pipe(fd) < 0) {
@@ -92,11 +121,15 @@ int exec_comando(char *str, char *command, char **parameters){
 		if(i!=0){
 			dup2(past, STDIN_FILENO);
 		}
+		if(flagfile){
+			dup2(file, STDOUT_FILENO);
+		}
 		execvp(command, parameters);
 	}
 	else wait(&status);
 	return 1;
 }
+
 
 int main(void){
 	int status;
@@ -104,6 +137,7 @@ int main(void){
 	char **parameters;
 	char *str;
 	
+//	int filename
 	while(1)
 	{
 		command = (char *)calloc(MAX_PAR, sizeof (char));
