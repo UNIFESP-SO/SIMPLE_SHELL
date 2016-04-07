@@ -57,7 +57,7 @@ int conta_pipe(char *str){
 }
 
 int exec_comando(char *str, char *command, char **parameters){
-	int cpipes, i;
+	int cpipes,status, i=0;
 	int fd[2];
 	int past;
 	
@@ -75,6 +75,7 @@ int exec_comando(char *str, char *command, char **parameters){
 			dup2(fd[1], STDOUT_FILENO);
 			execvp(command, parameters);	
 		}
+		else wait(&status);
 		close(fd[1]);
 		if(i!=0)
 			close(past);
@@ -89,11 +90,12 @@ int exec_comando(char *str, char *command, char **parameters){
 		}
 		execvp(command, parameters);
 	}
+	else wait(&status);
 	return 1;
 }
 
 int main(void){
-//	int status;
+	int status;
 	char *command;
 	char **parameters;
 	char *str;
@@ -114,9 +116,9 @@ int main(void){
 			exec_comando(str, command, parameters);
 			return 0;
 		}
-	//	else{
-	//		waitpid(0,&status, 0);
-	//	}
+		else{
+			wait(&status);
+		}
 	
 		free(command);
 		free(str);
