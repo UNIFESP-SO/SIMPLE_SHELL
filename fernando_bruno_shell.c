@@ -1,3 +1,7 @@
+// by:
+// 	Fernando Soares	RA: 86281
+//	Bruno Ferreira	RA: 	
+
 #include<sys/wait.h>
 #include<stdlib.h>
 #include<stdio.h>
