@@ -110,6 +110,7 @@ int main(void){
 	{
 		command = (char *)calloc(MAX_PAR, sizeof (char));
 		str	= (char *)calloc(MAX_COM, sizeof (char));
+		caminho	= (char *)calloc(MAX_COM, sizeof (char));
 		parameters = aloca(MAX_PAR, MAX_PAR);
 		open = 0;
 		
@@ -125,9 +126,9 @@ int main(void){
 		if(open > 0){
 			open++;
 			while(str[open] != '\n'){
-				//vetor recebe o caminho do arquivo especificado pelo usuário
+				caminho[0++] = str[open];
 			}
-			open( ,O_RDWR);
+			open(caminho, O_RDWR);
 		}
 		*/
 
