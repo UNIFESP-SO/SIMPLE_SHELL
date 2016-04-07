@@ -45,8 +45,18 @@ char **aloca(int L, int C){
 	return parameters;
 }
 
+int conta_pipe(char *str){
+    int cont = 0;
+    int a = 0;
+    while(str[a] != '\n'){
+        if(str[a] == '|')cont++;
+        a++;
+    }
+    return cont;
+}
+
 int main(void){
-	int status;
+	int status, cpipes;
 	char *command1;
 	char *command2;
 	char **parameters1;
@@ -72,7 +82,10 @@ int main(void){
 		read_commandline(str);	// lendo linha de comando inteira
 		if(!strcasecmp("exit\n", str)) break; 
 		if(!strcasecmp("\n", str)) continue;
-
+		
+		//contar quantos pipe
+		cpipes = conta_pipe(str);
+				
 		while(str){	//while tem comando a executar
                 	read_command(str, command1, parameters1); 
 			if( (str = index(str, '|')) ){
