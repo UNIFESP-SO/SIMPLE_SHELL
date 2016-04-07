@@ -17,7 +17,7 @@ int read_command(char *str, char *command, char **parameters){
 	while(str[i] != '\n' && str[i] != '|'){
 		while( str[i] == ' ' ){
 			 i++;
-			if(str[i] == '\n') sair = 1;
+			if(str[i] == '\n' || str[i] == '|') sair = 1;
 		}
 		if ( sair ) break;
 		if(str[i] != '|'){
@@ -57,55 +57,43 @@ int conta_pipe(char *str){
 }
 
 int exec_comando(char *str, char *command, char **parameters){
-	int cpipes, status, i;
+	int cpipes, i;
 	int fd[2];
-
-	if (pipe(fd) < 0) {
-		perror("pipe()");
-		return -1;
-	}
+	int past;
 	
 	cpipes = conta_pipe(str);
-	printf("cpipes = %d\n", cpipes);
-
 	for(i = 0; i < cpipes; i++){
+		if (pipe(fd) < 0) {
+			perror("pipe()");
+			return -1;
+		}
 	        read_command(str, command, parameters); 
-		printf("for i = %d\nstr = %scommand = %s, parameters = %s\n", i, str, command, parameters[1]);
-		if(fork() == 0) {
-			if(i == 0){
-				close(fd[0]);
-				dup2(fd[1], STDOUT_FILENO);
-				close(fd[1]);
+		if(!fork()) {
+			if(i!=0){
+				dup2(past, STDIN_FILENO);
 			}
-			else{
-				dup2(fd[0], STDIN_FILENO);
-				dup2(fd[1], STDOUT_FILENO);
-			}
+			dup2(fd[1], STDOUT_FILENO);
 			execvp(command, parameters);	
 		}
-		else{
-			wait(&status);
-		}
+		close(fd[1]);
+		if(i!=0)
+			close(past);
+		past = fd[0];
 		str = index(str, '|');
 		str++;
 	}
-	if(!i){
-	        read_command(str, command, parameters); 
-		execvp(command, parameters);
-	}
-	else{	
-		read_command(str, command, parameters);
-		printf("for i = %d\nstr = %scommand = %s, parameters = %s\n", i, str, command, parameters[0]);
-		close(fd[1]);
-		dup2(fd[0], STDIN_FILENO);
-		close(fd[0]);
+	read_command(str, command, parameters); 
+	if(!fork()){
+		if(i!=0){
+			dup2(past, STDIN_FILENO);
+		}
 		execvp(command, parameters);
 	}
 	return 1;
 }
 
 int main(void){
-	int status;
+//	int status;
 	char *command;
 	char **parameters;
 	char *str;
@@ -116,7 +104,7 @@ int main(void){
 		str	= (char *)calloc(MAX_COM, sizeof (char));
 		parameters = aloca(MAX_PAR, MAX_PAR);
 
-		printf("FERNANDO@SHELL$ ");
+		printf("FERNANDO&BRUNO@SHELL$ ");
 
 		read_commandline(str);	// lendo linha de comando inteira
 		if(!strcasecmp("exit\n", str)) break; 
@@ -126,9 +114,9 @@ int main(void){
 			exec_comando(str, command, parameters);
 			return 0;
 		}
-		else{
-			waitpid(0,&status, 0);
-		}
+	//	else{
+	//		waitpid(0,&status, 0);
+	//	}
 	
 		free(command);
 		free(str);
