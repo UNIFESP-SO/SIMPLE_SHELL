@@ -47,21 +47,17 @@ char **aloca(int L, int C){
 
 int conta_pipe(char *str){
     int cont = 0;
-    int a = 0;
-    while(str[a] != '\n'){
-        if(str[a] == '|')cont++;
-        a++;
+    int j = 0;
+    while(str[j] != '\n'){
+        if(str[j] == '|') 
+		cont++;
+        j++;
     }
     return cont;
 }
 
-int main(void){
-	int status, cpipes;
-	char *command1;
-	char *command2;
-	char **parameters1;
-	char **parameters2;
-	char *str;
+int exec_comando(char *str, char *command, char **parameters){
+	int cpipes, status, i;
 	int fd[2];
 
 	if (pipe(fd) < 0) {
@@ -69,13 +65,56 @@ int main(void){
 		return -1;
 	}
 	
+	cpipes = conta_pipe(str);
+	printf("cpipes = %d\n", cpipes);
+
+	for(i = 0; i < cpipes; i++){
+	        read_command(str, command, parameters); 
+		printf("for i = %d\nstr = %scommand = %s, parameters = %s\n", i, str, command, parameters[1]);
+		if(fork() == 0) {
+			if(i == 0){
+				close(fd[0]);
+				dup2(fd[1], STDOUT_FILENO);
+				close(fd[1]);
+			}
+			else{
+				dup2(fd[0], STDIN_FILENO);
+				dup2(fd[1], STDOUT_FILENO);
+			}
+			execvp(command, parameters);	
+		}
+		else{
+			wait(&status);
+		}
+		str = index(str, '|');
+		str++;
+	}
+	if(!i){
+	        read_command(str, command, parameters); 
+		execvp(command, parameters);
+	}
+	else{	
+		read_command(str, command, parameters);
+		printf("for i = %d\nstr = %scommand = %s, parameters = %s\n", i, str, command, parameters[0]);
+		close(fd[1]);
+		dup2(fd[0], STDIN_FILENO);
+		close(fd[0]);
+		execvp(command, parameters);
+	}
+	return 1;
+}
+
+int main(void){
+	int status;
+	char *command;
+	char **parameters;
+	char *str;
+	
 	while(1)
 	{
-		command1 = (char *)calloc(MAX_PAR, sizeof (char));
-		command2 = (char *)calloc(MAX_PAR, sizeof (char));
+		command = (char *)calloc(MAX_PAR, sizeof (char));
 		str	= (char *)calloc(MAX_COM, sizeof (char));
-		parameters1 = aloca(MAX_PAR, MAX_PAR);
-		parameters2 = aloca(MAX_PAR, MAX_PAR);
+		parameters = aloca(MAX_PAR, MAX_PAR);
 
 		printf("FERNANDO@SHELL$ ");
 
@@ -83,38 +122,17 @@ int main(void){
 		if(!strcasecmp("exit\n", str)) break; 
 		if(!strcasecmp("\n", str)) continue;
 		
-		//contar quantos pipe
-		cpipes = conta_pipe(str);
-				
-		while(str){	//while tem comando a executar
-                	read_command(str, command1, parameters1); 
-			if( (str = index(str, '|')) ){
-				str++;
-			}
-			else
-				continue;
-			if(fork() == 0) {
-				if(fork() == 0){
-					waitpid(0, &status, 0);
-					read_command(str, command2, parameters2);
-					dup2(fd[0], 0);
-					execvp(command2, parameters2);
-					return 0;
-				}else {
-					dup2(fd[1], 1);
-					execvp(command1, parameters1);
-					return 0;
-				}
-			}
-			else{
-				waitpid(0,&status, 0);
-			}
+		if(fork() == 0) {
+			exec_comando(str, command, parameters);
+			return 0;
 		}
-		free(command1);
-		free(command2);
+		else{
+			waitpid(0,&status, 0);
+		}
+	
+		free(command);
 		free(str);
-		free(parameters1);
-		free(parameters2);
+		free(parameters);
 	}
 	return 0;
 }
